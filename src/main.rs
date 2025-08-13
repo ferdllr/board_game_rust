@@ -23,9 +23,17 @@ fn main() {
 
         match direcao_opt {
             Some(direction) => {
-                player = move_player(player, direction, enemy);
-                enemy = move_enemy(player, enemy);
-                lose = check_win(player, enemy);
+                let move_result = move_player(player, direction, enemy);
+                match move_result {
+                    Ok(new_player_pos) => {
+                        player = new_player_pos;
+                        enemy = move_enemy(player, enemy);
+                        lose = check_win(player, enemy);
+                    }
+                    Err(error_message) => {
+                        println!("{}", error_message);
+                    }
+                }
             }
             None => {
                 println!("Direção inválida. Use W, A, S ou D.");
@@ -63,13 +71,12 @@ fn display_table(board: &mut [[usize; 5]; 5], pl: Point, enemy: Point) {
     println!("=====================");
 }
 
-fn move_player(pl: Point, direction: Direcao, enemy: Point) -> Point {
+fn move_player(pl: Point, direction: Direcao, enemy: Point) -> Result<Point, &'static str> {
     let new_coord = move_entity(pl, direction);
     if new_coord == enemy {
-        println!("Essa direção ja está ocupada");
-        pl
+        Err("Bloco já está ocupado")
     } else {
-        new_coord
+        Ok(new_coord)
     }
 }
 
