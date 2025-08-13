@@ -1,15 +1,13 @@
 use std::io;
 
-#[derive(PartialEq, Eq, Copy, Clone)]
-struct Point {
-    y: isize,
-    x: isize,
-}
+mod game;
+
+use game::{Direcao, Point, parse_direcao};
 
 fn main() {
     let mut board: [[usize; 5]; 5] = [[0; 5]; 5];
-    let mut player = Point { y: 2, x: 2 };
-    let mut enemy = Point { y: 0, x: 0 };
+    let mut player = Point::new(2, 2);
+    let mut enemy = Point::new(0, 0);
     let mut lose = false;
 
     display_table(&mut board, player, enemy);
@@ -21,11 +19,18 @@ fn main() {
             .read_line(&mut input)
             .expect("Falha ao ler a entrada");
 
-        let direction = input.trim().to_uppercase();
+        let direcao_opt = parse_direcao(&input);
 
-        player = move_player(player, &direction, enemy);
-        enemy = move_enemy(player, enemy);
-        lose = check_win(player, enemy);
+        match direcao_opt {
+            Some(direction) => {
+                player = move_player(player, direction, enemy);
+                enemy = move_enemy(player, enemy);
+                lose = check_win(player, enemy);
+            }
+            None => {
+                println!("Direção inválida. Use W, A, S ou D.");
+            }
+        }
 
         display_table(&mut board, player, enemy);
     }
@@ -42,10 +47,8 @@ fn display_table(board: &mut [[usize; 5]; 5], pl: Point, enemy: Point) {
             *square = 0;
         }
     }
-
     board[pl.y as usize][pl.x as usize] = 1;
     board[enemy.y as usize][enemy.x as usize] = 2;
-
     for row in board {
         for square in row {
             match *square {
@@ -60,7 +63,7 @@ fn display_table(board: &mut [[usize; 5]; 5], pl: Point, enemy: Point) {
     println!("=====================");
 }
 
-fn move_player(pl: Point, direction: &str, enemy: Point) -> Point {
+fn move_player(pl: Point, direction: Direcao, enemy: Point) -> Point {
     let new_coord = move_entity(pl, direction);
     if new_coord == enemy {
         println!("Essa direção ja está ocupada");
@@ -70,31 +73,28 @@ fn move_player(pl: Point, direction: &str, enemy: Point) -> Point {
     }
 }
 
-fn move_entity(e: Point, direction: &str) -> Point {
+fn move_entity(e: Point, direction: Direcao) -> Point {
     let mut new_coord = e;
     match direction {
-        "A" => {
+        Direcao::Esquerda => {
             if new_coord.x > 0 {
                 new_coord.x -= 1;
             }
         }
-        "D" => {
+        Direcao::Direita => {
             if new_coord.x < 4 {
                 new_coord.x += 1;
             }
         }
-        "W" => {
+        Direcao::Cima => {
             if new_coord.y > 0 {
                 new_coord.y -= 1;
             }
         }
-        "S" => {
+        Direcao::Baixo => {
             if new_coord.y < 4 {
                 new_coord.y += 1;
             }
-        }
-        _ => {
-            println!("Direção inválida. Use W, A, S ou D.");
         }
     }
     new_coord
@@ -104,7 +104,6 @@ fn move_enemy(pl: Point, enemy: Point) -> Point {
     let mut new_coord = enemy;
     let dist_x = pl.x - enemy.x;
     let dist_y = pl.y - enemy.y;
-
     if dist_x.abs() > dist_y.abs() {
         new_coord.x += dist_x.signum();
     } else {
